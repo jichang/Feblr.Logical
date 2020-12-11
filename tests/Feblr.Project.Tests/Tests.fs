@@ -365,3 +365,39 @@ type GrammarTest(output: ITestOutputHelper) =
         | Error err ->
             this.logSyntaxError err
             Assert.True(false)
+
+    [<Fact>]
+    member this.``Grammer should accept rule with multiple statements`` () =
+        let code =
+            """
+            fact(hello, []) :- hello(world), hello(universe, []).
+            fact(hello2, []) :- hello2(world), hello2(universe, []).
+            """.ToCharArray() |> Array.toSeq
+        let src =
+            { code = code
+              offset = 0 }
+        let result = lex Seq.empty src
+        match result with
+        | Ok tokens ->
+            Assert.Equal(Seq.length tokens, 94)
+            match parse Seq.empty tokens with
+            | Ok asts ->
+                Assert.Equal(Seq.length asts, 2)
+                let first = Seq.head asts
+                match first with
+                | Rule rule ->
+                    Assert.True(true)
+                | _ ->
+                    Assert.True(false)
+                let second = Seq.tail asts |> Seq.head
+                match second with
+                | Rule rule ->
+                    Assert.True(true)
+                | _ ->
+                    Assert.True(false)
+            | Error err ->
+                this.logGrammarError err
+                Assert.True(false)
+        | Error err ->
+            this.logSyntaxError err
+            Assert.True(false)

@@ -143,7 +143,7 @@ module Syntax =
 
     let parseIdentifier (source: Source) =
         let identifier =
-            Seq.takeWhile isAlphabet source.code
+            Seq.takeWhile (fun c ->isAlphabet c || isDigit c) source.code
         let length = Seq.length identifier
         match Seq.tryItem length source.code with
         | Some nextChar ->
@@ -156,7 +156,7 @@ module Syntax =
 
     let parseVariable (source: Source) =
         let variable =
-            Seq.takeWhile (fun c -> isAlphabet c || isUnderscore c)source.code
+            Seq.takeWhile (fun c -> isAlphabet c || isUnderscore c || isDigit c)source.code
         let length = Seq.length variable
         match Seq.tryItem length source.code with
         | Some nextChar ->
