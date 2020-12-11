@@ -4,14 +4,15 @@ open Xunit
 open Xunit.Abstractions;
 open FsUnit
 
-open Feblr.Prolog.Compiler.Lexer
+open Feblr.Prolog.Compiler.Syntax
+open Feblr.Prolog.Compiler.Grammar
 
 
 type LexerTest(output: ITestOutputHelper) =
-    member __.logError (err: LexerError) =
+    member __.logError (err: SyntaxError) =
         output.WriteLine("offset: {0}", err.offset)
         output.WriteLine("expected: {0}", err.expected)
-        output.WriteLine("actual: {0}", int(err.actual.[0]))
+        output.WriteLine("actual: {0}", err.actual)
 
     [<Fact>]
     member this.``Lexer should accept valid integer number`` () =
@@ -61,7 +62,7 @@ type LexerTest(output: ITestOutputHelper) =
 
     [<Fact>]
     member this.``Lexer should accept valid term`` () =
-        let code = "atom".ToCharArray() |> Array.toSeq
+        let code = "atAom".ToCharArray() |> Array.toSeq
         let src =
             { code = code
               offset = 0 }
@@ -74,7 +75,7 @@ type LexerTest(output: ITestOutputHelper) =
             Assert.Equal(token.offset, 0);
 
             match token.value with
-            | Atom term ->
+            | Identifier term ->
                 term |> should equivalent code
             | _ ->
                 Assert.True(false)
@@ -129,7 +130,7 @@ type LexerTest(output: ITestOutputHelper) =
             Assert.True(false)
 
     [<Fact>]
-    member this.``Lexer should accept other atom`` () =
+    member this.``Lexer should accept other identifier`` () =
         let code = ":-".ToCharArray() |> Array.toSeq
         let src =
             { code = code
@@ -143,7 +144,7 @@ type LexerTest(output: ITestOutputHelper) =
             Assert.Equal(token.offset, 0);
 
             match token.value with
-            | Atom str ->
+            | Identifier str ->
                 str |> should equivalent code
             | _ ->
                 Assert.True(false)
@@ -187,4 +188,180 @@ type LexerTest(output: ITestOutputHelper) =
             Assert.Equal(Seq.length tokens, 139)
         | Error err ->
             this.logError err
+            Assert.True(false)
+
+type GrammarTest(output: ITestOutputHelper) =
+    member __.logSyntaxError (err: SyntaxError) =
+        output.WriteLine("offset: {0}", err.offset)
+        output.WriteLine("expected: {0}", err.expected)
+        output.WriteLine("actual: {0}", err.actual)
+
+    member __.logGrammarError (err: GrammarError) =
+        output.WriteLine("token: {0}", err.token)
+        output.WriteLine("message: {0}", err.message)
+
+    [<Fact>]
+    member this.``Grammer should accept fact without arguments`` () =
+        
+        let code =
+            """fact.""".ToCharArray() |> Array.toSeq
+        let src =
+            { code = code
+              offset = 0 }
+        let result = lex Seq.empty src
+        match result with
+        | Ok tokens ->
+            Assert.Equal(Seq.length tokens, 2)
+            match parse Seq.empty tokens with
+            | Ok asts ->
+                Assert.Equal(Seq.length asts, 1)
+                let ast = Seq.head asts
+                match ast with
+                | Fact fact ->
+                    Assert.True(true)
+                | _ ->
+                    Assert.True(false)
+            | Error err ->
+                Assert.True(false)
+                this.logGrammarError err
+        | Error err ->
+            this.logSyntaxError err
+            Assert.True(false)
+
+    [<Fact>]
+    member this.``Grammer should accept fact with arguments`` () =
+        
+        let code =
+            """fact(hello).""".ToCharArray() |> Array.toSeq
+        let src =
+            { code = code
+              offset = 0 }
+        let result = lex Seq.empty src
+        match result with
+        | Ok tokens ->
+            Assert.Equal(Seq.length tokens, 5)
+            match parse Seq.empty tokens with
+            | Ok asts ->
+                Assert.Equal(Seq.length asts, 1)
+                let ast = Seq.head asts
+                match ast with
+                | Fact fact ->
+                    Assert.True(true)
+                | _ ->
+                    Assert.True(false)
+            | Error err ->
+                this.logGrammarError err
+                Assert.True(false)
+        | Error err ->
+            this.logSyntaxError err
+            Assert.True(false)
+
+    [<Fact>]
+    member this.``Grammer should accept fact with string argument`` () =
+        
+        let code =
+            """fact(hello, `Hello, world`).""".ToCharArray() |> Array.toSeq
+        let src =
+            { code = code
+              offset = 0 }
+        let result = lex Seq.empty src
+        match result with
+        | Ok tokens ->
+            Assert.Equal(Seq.length tokens, 8)
+            match parse Seq.empty tokens with
+            | Ok asts ->
+                Assert.Equal(Seq.length asts, 1)
+                let ast = Seq.head asts
+                match ast with
+                | Fact fact ->
+                    Assert.True(true)
+                | _ ->
+                    Assert.True(false)
+            | Error err ->
+                this.logGrammarError err
+                Assert.True(false)
+        | Error err ->
+            this.logSyntaxError err
+            Assert.True(false)
+
+    [<Fact>]
+    member this.``Grammer should accept fact with list arguments`` () =
+        
+        let code =
+            """fact(hello, []).""".ToCharArray() |> Array.toSeq
+        let src =
+            { code = code
+              offset = 0 }
+        let result = lex Seq.empty src
+        match result with
+        | Ok tokens ->
+            Assert.Equal(Seq.length tokens, 9)
+            match parse Seq.empty tokens with
+            | Ok asts ->
+                Assert.Equal(Seq.length asts, 1)
+                let ast = Seq.head asts
+                match ast with
+                | Fact fact ->
+                    Assert.True(true)
+                | _ ->
+                    Assert.True(false)
+            | Error err ->
+                this.logGrammarError err
+                Assert.True(false)
+        | Error err ->
+            this.logSyntaxError err
+            Assert.True(false)
+            
+    [<Fact>]
+    member this.``Grammer should accept rule with arguments`` () =
+        let code =
+            """fact(hello, []) :- hello(world).""".ToCharArray() |> Array.toSeq
+        let src =
+            { code = code
+              offset = 0 }
+        let result = lex Seq.empty src
+        match result with
+        | Ok tokens ->
+            Assert.Equal(Seq.length tokens, 16)
+            match parse Seq.empty tokens with
+            | Ok asts ->
+                Assert.Equal(Seq.length asts, 1)
+                let ast = Seq.head asts
+                match ast with
+                | Rule rule ->
+                    Assert.True(true)
+                | _ ->
+                    Assert.True(false)
+            | Error err ->
+                this.logGrammarError err
+                Assert.True(false)
+        | Error err ->
+            this.logSyntaxError err
+            Assert.True(false)
+
+    [<Fact>]
+    member this.``Grammer should accept rule with multiple predicates`` () =
+        let code =
+            """fact(hello, []) :- hello(world), hello(universe, []).""".ToCharArray() |> Array.toSeq
+        let src =
+            { code = code
+              offset = 0 }
+        let result = lex Seq.empty src
+        match result with
+        | Ok tokens ->
+            Assert.Equal(Seq.length tokens, 26)
+            match parse Seq.empty tokens with
+            | Ok asts ->
+                Assert.Equal(Seq.length asts, 1)
+                let ast = Seq.head asts
+                match ast with
+                | Rule rule ->
+                    Assert.True(true)
+                | _ ->
+                    Assert.True(false)
+            | Error err ->
+                this.logGrammarError err
+                Assert.True(false)
+        | Error err ->
+            this.logSyntaxError err
             Assert.True(false)
