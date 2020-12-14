@@ -10,9 +10,7 @@ open Feblr.Prolog.Compiler.Grammar
 
 type LexerTest(output: ITestOutputHelper) =
     member __.logError (err: SyntaxError) =
-        output.WriteLine("offset: {0}", err.offset)
-        output.WriteLine("expected: {0}", err.expected)
-        output.WriteLine("actual: {0}", err.actual)
+        output.WriteLine("syntax error: {0}", err)
 
     [<Fact>]
     member this.``Lexer should accept valid integer number`` () =
@@ -185,20 +183,17 @@ type LexerTest(output: ITestOutputHelper) =
         let result = lex Seq.empty src
         match result with
         | Ok tokens ->
-            Assert.Equal(Seq.length tokens, 139)
+            Assert.Equal(Seq.length tokens, 130)
         | Error err ->
             this.logError err
             Assert.True(false)
 
 type GrammarTest(output: ITestOutputHelper) =
     member __.logSyntaxError (err: SyntaxError) =
-        output.WriteLine("offset: {0}", err.offset)
-        output.WriteLine("expected: {0}", err.expected)
-        output.WriteLine("actual: {0}", err.actual)
+        output.WriteLine("syntax error: ", err)
 
     member __.logGrammarError (err: GrammarError) =
-        output.WriteLine("token: {0}", err.token)
-        output.WriteLine("message: {0}", err.message)
+        output.WriteLine("grammar error: ", err)
 
     [<Fact>]
     member this.``Grammer should accept fact without arguments`` () =
@@ -379,7 +374,7 @@ type GrammarTest(output: ITestOutputHelper) =
         let result = lex Seq.empty src
         match result with
         | Ok tokens ->
-            Assert.Equal(Seq.length tokens, 94)
+            Assert.Equal(Seq.length tokens, 91)
             match parse Seq.empty tokens with
             | Ok asts ->
                 Assert.Equal(Seq.length asts, 2)
@@ -401,3 +396,10 @@ type GrammarTest(output: ITestOutputHelper) =
         | Error err ->
             this.logSyntaxError err
             Assert.True(false)
+
+type CompilerTest(output: ITestOutputHelper) =
+    member __.logSyntaxError (err: SyntaxError) =
+        output.WriteLine("syntax error: ", err)
+
+    member __.logGrammarError (err: GrammarError) =
+        output.WriteLine("grammar error: ", err)
