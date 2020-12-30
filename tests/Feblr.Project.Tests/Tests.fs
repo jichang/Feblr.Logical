@@ -397,6 +397,35 @@ type GrammarTest(output: ITestOutputHelper) =
             this.logSyntaxError err
             Assert.True(false)
 
+    [<Fact>]
+    member this.``Grammer should accept rule with nested arguments`` () =
+        let code =
+            """
+            fact(hello, fact(hello, [])) :- hello(world), hello(universe, []).
+            """.ToCharArray() |> Array.toSeq
+        let src =
+            { code = code
+              offset = 0 }
+        let result = lex Seq.empty src
+        match result with
+        | Ok tokens ->
+            Assert.Equal(Seq.length tokens, 58)
+            match parse Seq.empty tokens with
+            | Ok asts ->
+                Assert.Equal(Seq.length asts, 1)
+                let first = Seq.head asts
+                match first with
+                | Rule rule ->
+                    Assert.True(true)
+                | _ ->
+                    Assert.True(false)
+            | Error err ->
+                this.logGrammarError err
+                Assert.True(false)
+        | Error err ->
+            this.logSyntaxError err
+            Assert.True(false)
+
 type CompilerTest(output: ITestOutputHelper) =
     member __.logSyntaxError (err: SyntaxError) =
         output.WriteLine("syntax error: ", err)

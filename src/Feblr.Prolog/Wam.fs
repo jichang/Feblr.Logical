@@ -3,3 +3,6 @@
 type IR =
     | Fact
     | Term
+
+module Unification =
+    let unify () = ()

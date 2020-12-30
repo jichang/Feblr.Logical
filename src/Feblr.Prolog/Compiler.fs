@@ -247,14 +247,15 @@ module Syntax =
                     lex (Seq.append tokens [token]) ({ code = Seq.skip len source.code; offset = source.offset + len})
                 | Error err ->
                     Error err
-module Grammar =
+
+module rec Grammar =
     open Syntax
 
     type Argument =
         | Value of Token
+        | Subterm of Predicate
         | List of Token seq
-
-    type Predicate =
+    and Predicate =
         { functor: Token
           arguments: Argument seq }
 
@@ -275,7 +276,7 @@ module Grammar =
         | Whitespace -> true
         | _ -> false
 
-    let thrink (tokens: Token seq) =
+    let trim (tokens: Token seq) =
         tokens
         |> Seq.skipWhile isInsignificantToken
 
@@ -289,7 +290,7 @@ module Grammar =
             | Variable _
             | Num _
             | Str _ ->
-                let tail = Seq.tail tokens |> thrink
+                let tail = Seq.tail tokens |> trim
                 match Seq.tryHead tail with
                 | Some nextToken ->
                     match nextToken.value with
@@ -313,14 +314,14 @@ module Grammar =
             | RightBracket ->
                 Ok (arguments, Seq.tail tokens)
             | LeftSquareBracket ->
-                match parseList (Seq.empty) (Seq.tail tokens |> thrink) with
+                match parseList (Seq.empty) (Seq.tail tokens |> trim) with
                 | Ok (items, tail) ->
-                    match Seq.tryHead (thrink tail) with
+                    match Seq.tryHead (trim tail) with
                     | Some nextToken ->
                         let argument = List items
                         match nextToken.value with
                         | Comma ->
-                            parseArguments (Seq.append arguments [argument]) (thrink tail |> Seq.tail)
+                            parseArguments (Seq.append arguments [argument]) (trim tail |> Seq.tail)
                         | RightBracket ->
                             Ok (Seq.append arguments [argument], Seq.tail tail)
                         | _ ->
@@ -329,22 +330,43 @@ module Grammar =
                         Error { token = None; message = "arguments should end with )" }                        
                 | Error err ->
                     Error err
-            | Identifier token
-            | Variable token
-            | Num token
-            | Str token ->
-                let tail = Seq.tail tokens |> thrink
+            | Identifier token ->
+                let tail = Seq.tail tokens |> trim
                 match Seq.tryHead tail with
                 | Some nextToken ->
                     match nextToken.value with
                     | Comma ->
                         let argument = Value firstToken
-                        parseArguments (Seq.append arguments [argument]) (Seq.tail tail |> thrink)
+                        parseArguments (Seq.append arguments [argument]) (Seq.tail tail |> trim)
+                    | RightBracket ->
+                        let argument = Value firstToken
+                        Ok (Seq.append arguments [argument], Seq.tail tail)
+                    | LeftBracket ->
+                        match parseFact tokens with
+                        | Ok (fact, rest) ->
+                            let argument = Subterm fact
+                            parseArguments (Seq.append arguments [argument]) (rest |> trim)
+                        | Error err ->
+                            Error err
+                    | _ ->
+                        Error { token = Some nextToken; message = "arguments should end with ) or item in list should be separated by ," }                    
+                | None ->
+                    Error { token = Some firstToken; message = "arguments should end with ) or item in list should be separated by ," }
+            | Variable token
+            | Num token
+            | Str token ->
+                let tail = Seq.tail tokens |> trim
+                match Seq.tryHead tail with
+                | Some nextToken ->
+                    match nextToken.value with
+                    | Comma ->
+                        let argument = Value firstToken
+                        parseArguments (Seq.append arguments [argument]) (Seq.tail tail |> trim)
                     | RightBracket ->
                         let argument = Value firstToken
                         Ok (Seq.append arguments [argument], Seq.tail tail)
                     | _ ->
-                        Error { token = Some nextToken; message = "arguments should end with ) or item in list should be separated by ," }                    
+                        Error { token = Some nextToken; message = "arguments should end with ) or item in list should be separated by ," }
                 | None ->
                     Error { token = Some firstToken; message = "arguments should end with ) or item in list should be separated by ," }
             | _ ->
@@ -357,7 +379,7 @@ module Grammar =
         | Some firstToken ->
             match firstToken.value with
             | Identifier _ ->
-                let tail = Seq.tail tokens |> thrink
+                let tail = Seq.tail tokens |> trim
                 match Seq.tryHead tail with
                 | Some nextToken ->
                     match nextToken.value with
@@ -380,16 +402,16 @@ module Grammar =
             Error { token = None; message = "fact should start with identifier" }
 
     let rec parsePredicates (clauses: Ast seq) (tokens: Token seq) =
-        match parseFact (thrink tokens) with
+        match parseFact (trim tokens) with
         | Ok (fact, tokens) ->
-            let tail = thrink tokens
+            let tail = trim tokens
             match Seq.tryHead tail with
             | Some nextToken ->
                 match nextToken.value with
                 | Period ->
-                    Ok (Seq.append clauses [Fact fact], Seq.tail tail |> thrink)
+                    Ok (Seq.append clauses [Fact fact], Seq.tail tail |> trim)
                 | Comma ->
-                    parsePredicates (Seq.append clauses [Fact fact]) (Seq.tail tail |> thrink)
+                    parsePredicates (Seq.append clauses [Fact fact]) (Seq.tail tail |> trim)
                 | _ ->
                     Error { token = Some nextToken; message = "predicate should end with period . or separated with ,"}
             | None ->
@@ -406,7 +428,7 @@ module Grammar =
             | Identifier _ ->
                 match parseFact tokens with
                 | Ok (fact, tokens) ->
-                    let rest = thrink tokens
+                    let rest = trim tokens
                     match Seq.tryHead rest with
                     | Some nextToken ->
                         match nextToken.value with
