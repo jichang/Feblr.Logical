@@ -5,11 +5,13 @@ VisualStudioVersion = 15.0.26124.0
 MinimumVisualStudioVersion = 15.0.26124.0
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{24CB2178-6F1B-4692-903C-D3CC2F50F69E}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Feblr.Prolog", "src\Feblr.Prolog\Feblr.Prolog.fsproj", "{CEE1B58C-0ECB-4334-85D0-3291F9D85A30}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Feblr.Logical", "src\Feblr.Logical\Feblr.Logical.fsproj", "{CEE1B58C-0ECB-4334-85D0-3291F9D85A30}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{B5DC75D0-8DCF-41C0-BC30-710E89F848BD}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Feblr.Project.Tests", "tests\Feblr.Project.Tests\Feblr.Project.Tests.fsproj", "{803316AD-293A-428D-B0AC-AD4BDD571DC9}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Feblr.Logical.Tests", "tests\Feblr.Logical.Tests\Feblr.Logical.Tests.fsproj", "{803316AD-293A-428D-B0AC-AD4BDD571DC9}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Feblr.Logical.Console", "src\Feblr.Logical.Console\Feblr.Logical.Console.fsproj", "{F06589A0-A751-4570-9882-88D8FE8EF1C2}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -48,9 +50,22 @@ Global
 		{803316AD-293A-428D-B0AC-AD4BDD571DC9}.Release|x64.Build.0 = Release|Any CPU
 		{803316AD-293A-428D-B0AC-AD4BDD571DC9}.Release|x86.ActiveCfg = Release|Any CPU
 		{803316AD-293A-428D-B0AC-AD4BDD571DC9}.Release|x86.Build.0 = Release|Any CPU
+		{F06589A0-A751-4570-9882-88D8FE8EF1C2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F06589A0-A751-4570-9882-88D8FE8EF1C2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F06589A0-A751-4570-9882-88D8FE8EF1C2}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{F06589A0-A751-4570-9882-88D8FE8EF1C2}.Debug|x64.Build.0 = Debug|Any CPU
+		{F06589A0-A751-4570-9882-88D8FE8EF1C2}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{F06589A0-A751-4570-9882-88D8FE8EF1C2}.Debug|x86.Build.0 = Debug|Any CPU
+		{F06589A0-A751-4570-9882-88D8FE8EF1C2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F06589A0-A751-4570-9882-88D8FE8EF1C2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F06589A0-A751-4570-9882-88D8FE8EF1C2}.Release|x64.ActiveCfg = Release|Any CPU
+		{F06589A0-A751-4570-9882-88D8FE8EF1C2}.Release|x64.Build.0 = Release|Any CPU
+		{F06589A0-A751-4570-9882-88D8FE8EF1C2}.Release|x86.ActiveCfg = Release|Any CPU
+		{F06589A0-A751-4570-9882-88D8FE8EF1C2}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{CEE1B58C-0ECB-4334-85D0-3291F9D85A30} = {24CB2178-6F1B-4692-903C-D3CC2F50F69E}
 		{803316AD-293A-428D-B0AC-AD4BDD571DC9} = {B5DC75D0-8DCF-41C0-BC30-710E89F848BD}
+		{F06589A0-A751-4570-9882-88D8FE8EF1C2} = {24CB2178-6F1B-4692-903C-D3CC2F50F69E}
 	EndGlobalSection
 EndGlobal

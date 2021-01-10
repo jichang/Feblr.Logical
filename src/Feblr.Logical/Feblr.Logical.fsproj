@@ -7,7 +7,6 @@
   <ItemGroup>
     <Compile Include="Compiler.fs" />
     <Compile Include="Wam.fs" />
-    <Compile Include="Library.fs" />
   </ItemGroup>
 
 </Project>

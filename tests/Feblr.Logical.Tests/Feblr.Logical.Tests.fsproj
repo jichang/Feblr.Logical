@@ -3,8 +3,8 @@
     <TargetFramework>net5.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Feblr.Prolog\Feblr.Prolog.fsproj">
-      <Name>Feblr.Prolog.fsproj</Name>
+    <ProjectReference Include="..\..\src\Feblr.Logical\Feblr.Logical.fsproj">
+      <Name>Feblr.Logical.fsproj</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
