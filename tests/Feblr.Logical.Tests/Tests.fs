@@ -227,9 +227,9 @@ type GrammarTest(output: ITestOutputHelper) =
                 Assert.Equal(Seq.length clauses, 1)
                 let clause = Seq.head clauses
 
-                match clause with
-                | Fact fact -> Assert.True(true)
-                | _ -> Assert.True(false)
+                Assert.Equal(clause.functor, "fact")
+                Assert.Equal(Seq.length clause.arguments, 0)
+                Assert.Equal(Seq.length clause.predicates, 0)
             | Error err ->
                 Assert.True(false)
                 this.logGrammarError err
@@ -257,9 +257,14 @@ type GrammarTest(output: ITestOutputHelper) =
                 Assert.Equal(Seq.length clauses, 1)
                 let clause = Seq.head clauses
 
-                match clause with
-                | Fact fact -> Assert.True(true)
-                | _ -> Assert.True(false)
+                Assert.Equal(clause.functor, "fact")
+                Assert.Equal(Seq.length clause.arguments, 1)
+                match Seq.head clause.arguments with
+                | Atom atom ->
+                    Assert.Equal(atom, "hello")
+                | _ ->
+                    Assert.True(false)
+                Assert.Equal(Seq.length clause.predicates, 0)
             | Error err ->
                 this.logGrammarError err
                 Assert.True(false)
@@ -287,9 +292,19 @@ type GrammarTest(output: ITestOutputHelper) =
                 Assert.Equal(Seq.length clauses, 1)
                 let clause = Seq.head clauses
 
-                match clause with
-                | Fact fact -> Assert.True(true)
-                | _ -> Assert.True(false)
+                Assert.Equal(clause.functor, "fact")
+                Assert.Equal(Seq.length clause.arguments, 2)
+                match Seq.head clause.arguments with
+                | Atom atom ->
+                    Assert.Equal(atom, "hello")
+                | _ ->
+                    Assert.True(false)
+                match Seq.item 1 clause.arguments with
+                | Str str ->
+                    Assert.Equal(str, "Hello, world")
+                | _ ->
+                    Assert.True(false)
+                Assert.Equal(Seq.length clause.predicates, 0)
             | Error err ->
                 this.logGrammarError err
                 Assert.True(false)
@@ -317,9 +332,19 @@ type GrammarTest(output: ITestOutputHelper) =
                 Assert.Equal(Seq.length clauses, 1)
                 let clause = Seq.head clauses
 
-                match clause with
-                | Fact fact -> Assert.True(true)
-                | _ -> Assert.True(false)
+                Assert.Equal(clause.functor, "fact")
+                Assert.Equal(Seq.length clause.arguments, 2)
+                match Seq.head clause.arguments with
+                | Atom atom ->
+                    Assert.Equal(atom, "hello")
+                | _ ->
+                    Assert.True(false)
+                match Seq.item 1 clause.arguments with
+                | List list ->
+                    Assert.Equal(Seq.length list, 0)
+                | _ ->
+                    Assert.True(false)
+                Assert.Equal(Seq.length clause.predicates, 0)
             | Error err ->
                 this.logGrammarError err
                 Assert.True(false)
@@ -346,9 +371,33 @@ type GrammarTest(output: ITestOutputHelper) =
                 Assert.Equal(Seq.length clauses, 1)
                 let clause = Seq.head clauses
 
-                match clause with
-                | Rule rule -> Assert.True(true)
-                | _ -> Assert.True(false)
+                Assert.Equal(clause.functor, "fact")
+
+                Assert.Equal(Seq.length clause.arguments, 2)
+                match Seq.head clause.arguments with
+                | Atom atom ->
+                    Assert.Equal(atom, "hello")
+                | _ ->
+                    Assert.True(false)
+                match Seq.item 1 clause.arguments with
+                | List list ->
+                    Assert.Equal(Seq.length list, 0)
+                | _ ->
+                    Assert.True(false)
+
+                Assert.Equal(Seq.length clause.predicates, 1)
+                match Seq.head clause.predicates with
+                | CompoundTerm (functor, arguments, predicates) ->
+                    Assert.Equal(functor, "hello")
+                    Assert.Equal(Seq.length arguments, 1)
+                    match Seq.head arguments with
+                    | Atom atom ->
+                        Assert.Equal(atom, "world")
+                    | _ ->
+                        Assert.True(false)
+                    Assert.Equal(Seq.length predicates, 0)
+                | _ ->
+                    Assert.True(false)
             | Error err ->
                 this.logGrammarError err
                 Assert.True(false)
@@ -376,9 +425,50 @@ type GrammarTest(output: ITestOutputHelper) =
                 Assert.Equal(Seq.length clauses, 1)
                 let clause = Seq.head clauses
 
-                match clause with
-                | Rule rule -> Assert.True(true)
-                | _ -> Assert.True(false)
+                Assert.Equal(clause.functor, "fact")
+
+                Assert.Equal(Seq.length clause.arguments, 2)
+                match Seq.head clause.arguments with
+                | Atom atom ->
+                    Assert.Equal(atom, "hello")
+                | _ ->
+                    Assert.True(false)
+                match Seq.item 1 clause.arguments with
+                | List list ->
+                    Assert.Equal(Seq.length list, 0)
+                | _ ->
+                    Assert.True(false)
+
+                Assert.Equal(Seq.length clause.predicates, 2)
+                match Seq.head clause.predicates with
+                | CompoundTerm (functor, arguments, predicates) ->
+                    Assert.Equal(functor, "hello")
+                    Assert.Equal(Seq.length arguments, 1)
+                    match Seq.head arguments with
+                    | Atom atom ->
+                        Assert.Equal(atom, "world")
+                    | _ ->
+                        Assert.True(false)
+                    Assert.Equal(Seq.length predicates, 0)
+                | _ ->
+                    Assert.True(false)
+                match Seq.item 1 clause.predicates with
+                | CompoundTerm (functor, arguments, predicates) ->
+                    Assert.Equal(functor, "hello")
+                    Assert.Equal(Seq.length arguments, 2)
+                    match Seq.head arguments with
+                    | Atom atom ->
+                        Assert.Equal(atom, "universe")
+                    | _ ->
+                        Assert.True(false)
+                    match Seq.item 1 arguments with
+                    | List list ->
+                        Assert.Equal(Seq.length list, 0)
+                    | _ ->
+                        Assert.True(false)
+                    Assert.Equal(Seq.length predicates, 0)
+                | _ ->
+                    Assert.True(false)
             | Error err ->
                 this.logGrammarError err
                 Assert.True(false)
@@ -406,17 +496,99 @@ type GrammarTest(output: ITestOutputHelper) =
             match parse Seq.empty tokens with
             | Ok clauses ->
                 Assert.Equal(Seq.length clauses, 2)
-                let first = Seq.head clauses
+                let clause = Seq.head clauses
 
-                match first with
-                | Rule rule -> Assert.True(true)
-                | _ -> Assert.True(false)
+                Assert.Equal(clause.functor, "fact")
 
-                let second = Seq.tail clauses |> Seq.head
+                Assert.Equal(Seq.length clause.arguments, 2)
+                match Seq.head clause.arguments with
+                | Atom atom ->
+                    Assert.Equal(atom, "hello")
+                | _ ->
+                    Assert.True(false)
+                match Seq.item 1 clause.arguments with
+                | List list ->
+                    Assert.Equal(Seq.length list, 0)
+                | _ ->
+                    Assert.True(false)
 
-                match second with
-                | Rule rule -> Assert.True(true)
-                | _ -> Assert.True(false)
+                Assert.Equal(Seq.length clause.predicates, 2)
+                match Seq.head clause.predicates with
+                | CompoundTerm (functor, arguments, predicates) ->
+                    Assert.Equal(functor, "hello")
+                    Assert.Equal(Seq.length arguments, 1)
+                    match Seq.head arguments with
+                    | Atom atom ->
+                        Assert.Equal(atom, "world")
+                    | _ ->
+                        Assert.True(false)
+                    Assert.Equal(Seq.length predicates, 0)
+                | _ ->
+                    Assert.True(false)
+                match Seq.item 1 clause.predicates with
+                | CompoundTerm (functor, arguments, predicates) ->
+                    Assert.Equal(functor, "hello")
+                    Assert.Equal(Seq.length arguments, 2)
+                    match Seq.head arguments with
+                    | Atom atom ->
+                        Assert.Equal(atom, "universe")
+                    | _ ->
+                        Assert.True(false)
+                    match Seq.item 1 arguments with
+                    | List list ->
+                        Assert.Equal(Seq.length list, 0)
+                    | _ ->
+                        Assert.True(false)
+                    Assert.Equal(Seq.length predicates, 0)
+                | _ ->
+                    Assert.True(false)
+
+                let clause = Seq.item 1 clauses
+
+                Assert.Equal(clause.functor, "fact")
+
+                Assert.Equal(Seq.length clause.arguments, 2)
+                match Seq.head clause.arguments with
+                | Atom atom ->
+                    Assert.Equal(atom, "hello2")
+                | _ ->
+                    Assert.True(false)
+                match Seq.item 1 clause.arguments with
+                | List list ->
+                    Assert.Equal(Seq.length list, 0)
+                | _ ->
+                    Assert.True(false)
+
+                Assert.Equal(Seq.length clause.predicates, 2)
+                match Seq.head clause.predicates with
+                | CompoundTerm (functor, arguments, predicates) ->
+                    Assert.Equal(functor, "hello2")
+                    Assert.Equal(Seq.length arguments, 1)
+                    match Seq.head arguments with
+                    | Atom atom ->
+                        Assert.Equal(atom, "world")
+                    | _ ->
+                        Assert.True(false)
+                    Assert.Equal(Seq.length predicates, 0)
+                | _ ->
+                    Assert.True(false)
+                match Seq.item 1 clause.predicates with
+                | CompoundTerm (functor, arguments, predicates) ->
+                    Assert.Equal(functor, "hello2")
+                    Assert.Equal(Seq.length arguments, 2)
+                    match Seq.head arguments with
+                    | Atom atom ->
+                        Assert.Equal(atom, "universe")
+                    | _ ->
+                        Assert.True(false)
+                    match Seq.item 1 arguments with
+                    | List list ->
+                        Assert.Equal(Seq.length list, 0)
+                    | _ ->
+                        Assert.True(false)
+                    Assert.Equal(Seq.length predicates, 0)
+                | _ ->
+                    Assert.True(false)
             | Error err ->
                 this.logGrammarError err
                 Assert.True(false)
@@ -443,11 +615,63 @@ type GrammarTest(output: ITestOutputHelper) =
             match parse Seq.empty tokens with
             | Ok clauses ->
                 Assert.Equal(Seq.length clauses, 1)
-                let first = Seq.head clauses
+                let clause = Seq.head clauses
 
-                match first with
-                | Rule rule -> Assert.True(true)
-                | _ -> Assert.True(false)
+                Assert.Equal(clause.functor, "fact")
+
+                Assert.Equal(Seq.length clause.arguments, 2)
+                match Seq.head clause.arguments with
+                | Atom atom ->
+                    Assert.Equal(atom, "hello")
+                | _ ->
+                    Assert.True(false)
+                match Seq.item 1 clause.arguments with
+                | CompoundTerm (functor, arguments, predicates) ->
+                    Assert.Equal(functor, "fact")
+                    Assert.Equal(Seq.length arguments, 2)
+                    match Seq.head arguments with
+                    | Atom atom ->
+                        Assert.Equal(atom, "hello")
+                    | _ ->
+                        Assert.True(false)
+                    match Seq.item 1 arguments with
+                    | List list ->
+                        Assert.Equal(Seq.length list, 0)
+                    | _ ->
+                        Assert.True(false)
+                | _ ->
+                    Assert.True(false)
+
+                Assert.Equal(Seq.length clause.predicates, 2)
+                match Seq.head clause.predicates with
+                | CompoundTerm (functor, arguments, predicates) ->
+                    Assert.Equal(functor, "hello")
+                    Assert.Equal(Seq.length arguments, 1)
+                    match Seq.head arguments with
+                    | Atom atom ->
+                        Assert.Equal(atom, "world")
+                    | _ ->
+                        Assert.True(false)
+                    Assert.Equal(Seq.length predicates, 0)
+                | _ ->
+                    Assert.True(false)
+                match Seq.item 1 clause.predicates with
+                | CompoundTerm (functor, arguments, predicates) ->
+                    Assert.Equal(functor, "hello")
+                    Assert.Equal(Seq.length arguments, 2)
+                    match Seq.head arguments with
+                    | Atom atom ->
+                        Assert.Equal(atom, "universe")
+                    | _ ->
+                        Assert.True(false)
+                    match Seq.item 1 arguments with
+                    | List list ->
+                        Assert.Equal(Seq.length list, 0)
+                    | _ ->
+                        Assert.True(false)
+                    Assert.Equal(Seq.length predicates, 0)
+                | _ ->
+                    Assert.True(false)
             | Error err ->
                 this.logGrammarError err
                 Assert.True(false)
@@ -474,11 +698,73 @@ type GrammarTest(output: ITestOutputHelper) =
             match parse Seq.empty tokens with
             | Ok clauses ->
                 Assert.Equal(Seq.length clauses, 1)
-                let first = Seq.head clauses
+                let clause = Seq.head clauses
 
-                match first with
-                | Rule rule -> Assert.True(true)
-                | _ -> Assert.True(false)
+                Assert.Equal(clause.functor, "fact")
+
+                Assert.Equal(Seq.length clause.arguments, 2)
+                match Seq.head clause.arguments with
+                | Atom atom ->
+                    Assert.Equal(atom, "hello")
+                | _ ->
+                    Assert.True(false)
+                match Seq.item 1 clause.arguments with
+                | CompoundTerm (functor, arguments, predicates) ->
+                    Assert.Equal(functor, "fact")
+                    Assert.Equal(Seq.length arguments, 2)
+                    match Seq.head arguments with
+                    | Atom atom ->
+                        Assert.Equal(atom, "hello")
+                    | _ ->
+                        Assert.True(false)
+                    match Seq.item 1 arguments with
+                    | List list ->
+                        Assert.Equal(Seq.length list, 1)
+                        match Seq.head list with
+                        | Atom atom ->
+                            Assert.Equal(atom, "hello")
+                        | _ ->
+                            Assert.True(false)
+                    | _ ->
+                        Assert.True(false)
+                | _ ->
+                    Assert.True(false)
+
+                Assert.Equal(Seq.length clause.predicates, 2)
+                match Seq.head clause.predicates with
+                | CompoundTerm (functor, arguments, predicates) ->
+                    Assert.Equal(functor, "hello")
+                    Assert.Equal(Seq.length arguments, 1)
+                    match Seq.head arguments with
+                    | Atom atom ->
+                        Assert.Equal(atom, "world")
+                    | _ ->
+                        Assert.True(false)
+                    Assert.Equal(Seq.length predicates, 0)
+                | _ ->
+                    Assert.True(false)
+                match Seq.item 1 clause.predicates with
+                | CompoundTerm (functor, arguments, predicates) ->
+                    Assert.Equal(functor, "hello")
+                    Assert.Equal(Seq.length arguments, 2)
+                    match Seq.head arguments with
+                    | Atom atom ->
+                        Assert.Equal(atom, "universe")
+                    | _ ->
+                        Assert.True(false)
+                    match Seq.item 1 arguments with
+                    | List list ->
+                        Assert.Equal(Seq.length list, 1)
+                        match Seq.head list with
+                        | Atom atom ->
+                            Assert.Equal(atom, "world")
+                        | _ ->
+                            Assert.True(false)
+                    | _ ->
+                        Assert.True(false)
+                    Assert.Equal(Seq.length predicates, 0)
+                | _ ->
+                    Assert.True(false)
             | Error err ->
                 this.logGrammarError err
                 Assert.True(false)

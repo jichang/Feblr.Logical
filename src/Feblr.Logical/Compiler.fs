@@ -382,6 +382,7 @@ module Syntax =
 module rec Grammar =
     open Syntax
 
+    let ifTerm = ":-"
     type Term =
         | Var of string (* Variable *)
         | Str of string (* `hello, world` *)
@@ -390,18 +391,10 @@ module rec Grammar =
         | List of Term seq (* [...] *)
         | CompoundTerm of string * Term seq * Term seq (* functor(t1, t2) := functor2, X, `hello`, 203430 *)
 
-    type Fact =
-        { functor: string
-          arguments: Term seq }
-
-    type Rule =
+    type Clause =
         { functor: string
           arguments: Term seq
           predicates: Term seq }
-
-    type Clause =
-        | Fact of Fact
-        | Rule of Rule
 
     type GrammarError =
         { token: Token option
@@ -489,7 +482,7 @@ module rec Grammar =
                                     if nextToken.value = Period then
                                         let compoundTerm = CompoundTerm(functor, [], [])
                                         Ok(compoundTerm, tail)
-                                    else if nextToken.value = Identifier ":-" then
+                                    else if nextToken.value = Identifier ifTerm then
                                         let newTail = tail |> Seq.tail |> trim
 
                                         match parseTuple [] newTail with
@@ -517,7 +510,7 @@ module rec Grammar =
                                             | Some nextToken ->
                                                 if nextToken.value = Period then
                                                     Ok(compoundTerm, newTail)
-                                                else if nextToken.value = Identifier ":-" then
+                                                else if nextToken.value = Identifier ifTerm then
                                                     let newTail = newTail |> Seq.tail |> trim
 
                                                     match parseTuple [] newTail with
@@ -582,23 +575,24 @@ module rec Grammar =
                         if nextTokne.value = Period then
                             match term with
                             | Atom functor ->
-                                let fact = { functor = functor; arguments = [] }
+                                let clause = { functor = functor; arguments = []; predicates = [] }
 
-                                parse (Seq.append clauses [ Fact fact ]) (Seq.tail tokens |> trim)
+                                parse (Seq.append clauses [ clause ]) (Seq.tail tokens |> trim)
                             | CompoundTerm (functor, arguments, predicates) ->
                                 if Seq.isEmpty predicates then
-                                    let fact =
+                                    let clause =
                                         { functor = functor
-                                          arguments = arguments }
+                                          arguments = arguments
+                                          predicates = [] }
 
-                                    parse (Seq.append clauses [ Fact fact ]) (Seq.tail tokens |> trim)
+                                    parse (Seq.append clauses [ clause ]) (Seq.tail tokens |> trim)
                                 else
-                                    let rule =
+                                    let clause =
                                         { functor = functor
                                           arguments = arguments
                                           predicates = predicates }
 
-                                    parse (Seq.append clauses [ Rule rule ]) (Seq.tail tokens |> trim)
+                                    parse (Seq.append clauses [ clause ]) (Seq.tail tokens |> trim)
                             | _ ->
                                 Error
                                     { token = Some token
@@ -621,3 +615,12 @@ module rec Grammar =
 
 module Compiler =
     open Grammar
+
+    type Functor =
+        { atom: string
+          arity: int32 }
+
+    type Expr =
+        { functor: Functor
+          arguments: Term array
+          predicates: Term array }
