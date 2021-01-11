@@ -12,12 +12,7 @@ module Syntax =
         | Identifier of string
         | Variable of string
         | Chars of string
-        | LeftSquareBracket
-        | RightSquareBracket
-        | LeftBracket
-        | RightBracket
-        | Comma
-        | Period
+        | Operator of string
         | Whitespace
         | Newline
 
@@ -26,12 +21,6 @@ module Syntax =
         | IdentifierMarker
         | VariableMarker
         | CharsMarker
-        | LeftSquareBracketMarker
-        | RightSquareBracketMarker
-        | LeftBraketMarker
-        | RightBracketMarker
-        | CommaMarker
-        | PeriodMarker
         | WhitespaceMarker
         | NewlineMarker
         | OperatorMarker
@@ -67,6 +56,8 @@ module Syntax =
 
     let isComma c = c = ','
 
+    let isBar c = c = '|'
+
     let checkMark (c: char): Marker =
         if isDigit c then
             DigitsMarker
@@ -76,19 +67,7 @@ module Syntax =
             VariableMarker
         else if isQuote c then
             CharsMarker
-        else if c = '[' then
-            LeftSquareBracketMarker
-        else if c = ']' then
-            RightSquareBracketMarker
-        else if c = '(' then
-            LeftBraketMarker
-        else if c = ')' then
-            RightBracketMarker
-        else if c = ',' then
-            CommaMarker
-        else if c = '.' then
-            PeriodMarker
-        else if c = ' ' then
+        else if isWhitespace c then
             WhitespaceMarker
         else if isNewline c then
             NewlineMarker
@@ -250,11 +229,20 @@ module Syntax =
             )
 
     let parseOperator (source: Source) =
+        let token = Seq.head source.code
+
         let operator =
-            Seq.takeWhile (fun c -> not (isWhitespace c || isNewline c)) source.code
+            match token with
+            | '['
+            | ']'
+            | '('
+            | ')'
+            | ','
+            | '.' -> Seq.append [] [ token ]
+            | _ -> Seq.takeWhile (fun c -> not (isWhitespace c || isNewline c)) source.code
 
         Ok(
-            { value = operator |> charsToString |> Identifier
+            { value = operator |> charsToString |> Operator
               offset = source.offset },
             Seq.length operator
         )
@@ -298,60 +286,6 @@ module Syntax =
                         ({ code = Seq.skip len source.code
                            offset = source.offset + len })
                 | Error err -> Error err
-            | LeftSquareBracketMarker ->
-                let token =
-                    { value = LeftSquareBracket
-                      offset = source.offset }
-
-                lex
-                    (Seq.append tokens [ token ])
-                    ({ code = Seq.skip 1 source.code
-                       offset = source.offset + 1 })
-            | RightSquareBracketMarker ->
-                let token =
-                    { value = RightSquareBracket
-                      offset = source.offset }
-
-                lex
-                    (Seq.append tokens [ token ])
-                    ({ code = Seq.skip 1 source.code
-                       offset = source.offset + 1 })
-            | LeftBraketMarker ->
-                let token =
-                    { value = LeftBracket
-                      offset = source.offset }
-
-                lex
-                    (Seq.append tokens [ token ])
-                    ({ code = Seq.skip 1 source.code
-                       offset = source.offset + 1 })
-            | RightBracketMarker ->
-                let token =
-                    { value = RightBracket
-                      offset = source.offset }
-
-                lex
-                    (Seq.append tokens [ token ])
-                    ({ code = Seq.skip 1 source.code
-                       offset = source.offset + 1 })
-            | CommaMarker ->
-                let token =
-                    { value = Comma
-                      offset = source.offset }
-
-                lex
-                    (Seq.append tokens [ token ])
-                    ({ code = Seq.skip 1 source.code
-                       offset = source.offset + 1 })
-            | PeriodMarker ->
-                let token =
-                    { value = Period
-                      offset = source.offset }
-
-                lex
-                    (Seq.append tokens [ token ])
-                    ({ code = Seq.skip 1 source.code
-                       offset = source.offset + 1 })
             | WhitespaceMarker ->
                 let token =
                     { value = Whitespace
@@ -382,19 +316,22 @@ module Syntax =
 module rec Grammar =
     open Syntax
 
-    let ifTerm = ":-"
+    let comma = Operator ","
+    let predicate = Operator ":-"
+    let period = Operator "."
+    let leftBracket = Operator "("
+    let rightBracket = Operator ")"
+    let leftSquareBracket = Operator "["
+    let rightSquareBracket = Operator "]"
+
     type Term =
         | Var of string (* Variable *)
         | Str of string (* `hello, world` *)
         | Num of string (* 103323434 *)
         | Atom of string (* atom *)
-        | List of Term seq (* [...] *)
-        | CompoundTerm of string * Term seq * Term seq (* functor(t1, t2) := functor2, X, `hello`, 203430 *)
-
-    type Clause =
-        { functor: string
-          arguments: Term seq
-          predicates: Term seq }
+        | Oper of string (* operator, like + - * / | . :-, it's a special kind ofatom *)
+        | List of Term list (* [...] *)
+        | CompoundTerm of string * Term list (* functor(t1, t2) := functor2, X, `hello`, 203430 *)
 
     type GrammarError =
         { token: Token option
@@ -409,15 +346,30 @@ module rec Grammar =
     let trim (tokens: Token seq) =
         tokens |> Seq.skipWhile isInsignificantToken
 
-    let rec parseTuple (terms: Term seq) (tokens: Token seq) =
+    let rec parseTuple (terms: Term list) (tokens: Token seq) =
         match parseTerm tokens with
         | Ok (term, newTokens) ->
-            let newTerms = Seq.append terms [ term ]
+            let newTerms = List.append terms [ term ]
             let newTail = trim newTokens
 
             match Seq.tryHead newTail with
             | Some nextToken ->
-                if nextToken.value = Comma then
+                if nextToken.value = comma then
+                    parseTuple newTerms (newTail |> Seq.tail |> trim)
+                else
+                    Ok(newTerms, newTail)
+            | None -> Ok(newTerms, newTail)
+        | Error err -> Error err
+
+    let rec parseList (terms: Term list) (tokens: Token seq) =
+        match parseTerm tokens with
+        | Ok (term, newTokens) ->
+            let newTerms = List.append terms [ term ]
+            let newTail = trim newTokens
+
+            match Seq.tryHead newTail with
+            | Some nextToken ->
+                if nextToken.value = comma then
                     parseTuple newTerms (newTail |> Seq.tail |> trim)
                 else
                     Ok(newTerms, newTail)
@@ -432,31 +384,7 @@ module rec Grammar =
             | Variable variable -> Ok(Var variable, Seq.tail tokens)
             | Digits digits -> Ok(Num digits, Seq.tail tokens)
             | Chars chars -> Ok(Str chars, Seq.tail tokens)
-            | LeftSquareBracket ->
-                let tail = Seq.tail tokens |> trim
-
-                match Seq.tryHead tail with
-                | Some nextToken ->
-                    if nextToken.value = RightSquareBracket then
-                        Ok(List [], tail |> Seq.tail)
-                    else
-                        match parseTuple [] tail with
-                        | Ok (terms, tokens) ->
-                            match Seq.tryHead tokens with
-                            | Some nextToken ->
-                                if nextToken.value = RightSquareBracket then
-                                    Ok(List terms, tokens |> Seq.tail |> trim)
-                                else
-                                    Error
-                                        { token = Some nextToken
-                                          message = "list should end with ]" }
-                            | None -> Ok(List terms, tokens)
-                        | Error error -> Error error
-                | None ->
-                    Error
-                        { token = None
-                          message = "list should end with ]" }
-            | Identifier functor ->
+            | Identifier atom ->
                 let tail = Seq.tail tokens |> trim
 
                 match Seq.tryHead tail with
@@ -468,69 +396,25 @@ module rec Grammar =
                     | Chars _ ->
                         Error
                             { token = Some nextToken
-                              message = "term should be separated by ," }
-                    | LeftBracket ->
+                              message = "term should be separated by operator or comma" }
+                    | Operator "(" ->
                         let newTail = Seq.tail tail |> trim
 
                         match Seq.tryHead newTail with
                         | Some nextToken ->
-                            if nextToken.value = RightBracket then
+                            if nextToken.value = rightBracket then
                                 let tail = newTail |> Seq.tail |> trim
-
-                                match Seq.tryHead tail with
-                                | Some nextToken ->
-                                    if nextToken.value = Period then
-                                        let compoundTerm = CompoundTerm(functor, [], [])
-                                        Ok(compoundTerm, tail)
-                                    else if nextToken.value = Identifier ifTerm then
-                                        let newTail = tail |> Seq.tail |> trim
-
-                                        match parseTuple [] newTail with
-                                        | Ok (predicates, tail) ->
-                                            let term = CompoundTerm(functor, [], predicates)
-                                            Ok(term, tail |> trim)
-                                        | Error err -> Error err
-                                    else
-                                        Error
-                                            { token = Some nextToken
-                                              message = "compound term should end with ." }
-                                | None ->
-                                    let compoundTerm = CompoundTerm(functor, [], [])
-                                    Ok(compoundTerm, tail)
+                                let compoundTerm = CompoundTerm(atom, [])
+                                Ok(compoundTerm, tail)
                             else
                                 match parseTuple [] newTail with
                                 | Ok (arguments, tail) ->
                                     match Seq.tryHead tail with
                                     | Some nextToken ->
-                                        if nextToken.value = RightBracket then
-                                            let compoundTerm = CompoundTerm(functor, arguments, [])
+                                        if nextToken.value = rightBracket then
+                                            let compoundTerm = CompoundTerm(atom, arguments)
                                             let newTail = tail |> Seq.tail |> trim
-
-                                            match Seq.tryHead newTail with
-                                            | Some nextToken ->
-                                                if nextToken.value = Period then
-                                                    Ok(compoundTerm, newTail)
-                                                else if nextToken.value = Identifier ifTerm then
-                                                    let newTail = newTail |> Seq.tail |> trim
-
-                                                    match parseTuple [] newTail with
-                                                    | Ok (predicates, tail) ->
-                                                        let term =
-                                                            CompoundTerm(functor, arguments, predicates)
-
-                                                        Ok(term, tail |> trim)
-                                                    | Error err -> Error err
-                                                else if nextToken.value = Comma then
-                                                    Ok(compoundTerm, newTail)
-                                                else if nextToken.value = RightBracket then
-                                                    Ok(compoundTerm, newTail)
-                                                else if nextToken.value = RightSquareBracket then
-                                                    Ok(compoundTerm, newTail)
-                                                else
-                                                    Error
-                                                        { token = Some nextToken
-                                                          message = "compound term should end with ." }
-                                            | None -> Ok(compoundTerm, newTail)
+                                            Ok(compoundTerm, newTail)
                                         else
                                             Error
                                                 { token = Some nextToken
@@ -545,12 +429,37 @@ module rec Grammar =
                                 { token = None
                                   message = "arguments should end with )" }
                     | _ ->
-                        let term = Atom functor
+                        let term = Atom atom
                         Ok(term, tail)
                 | None ->
                     Error
                         { token = None
                           message = "term should end with ." }
+            | Operator "[" ->
+                let tail = Seq.tail tokens |> trim
+
+                match Seq.tryHead tail with
+                | Some nextToken ->
+                    if nextToken.value = rightSquareBracket then
+                        Ok(List [], tail |> Seq.tail)
+                    else
+                        match parseTuple [] tail with
+                        | Ok (terms, tokens) ->
+                            match Seq.tryHead tokens with
+                            | Some nextToken ->
+                                if nextToken.value = rightSquareBracket then
+                                    Ok(List terms, tokens |> Seq.tail |> trim)
+                                else
+                                    Error
+                                        { token = Some nextToken
+                                          message = "list should end with ]" }
+                            | None -> Ok(List terms, tokens)
+                        | Error error -> Error error
+                | None ->
+                    Error
+                        { token = None
+                          message = "list should end with ]" }
+            | Operator operator -> Ok(Oper operator, Seq.tail tokens)
             | _ ->
                 Error
                     { token = Some firstToken
@@ -560,54 +469,20 @@ module rec Grammar =
                 { token = None
                   message = "term should start with identifier" }
 
-    let rec parse (clauses: Clause seq) (tokens: Token seq) =
+    let rec parse (terms: Term seq) (tokens: Token seq) =
         if Seq.isEmpty tokens then
-            Ok clauses
+            Ok terms
         else
             let token = Seq.head tokens
 
             match token.value with
             | Identifier _ ->
                 match parseTerm tokens with
-                | Ok (term, tokens) ->
-                    match Seq.tryHead (tokens |> trim) with
-                    | Some nextTokne ->
-                        if nextTokne.value = Period then
-                            match term with
-                            | Atom functor ->
-                                let clause = { functor = functor; arguments = []; predicates = [] }
-
-                                parse (Seq.append clauses [ clause ]) (Seq.tail tokens |> trim)
-                            | CompoundTerm (functor, arguments, predicates) ->
-                                if Seq.isEmpty predicates then
-                                    let clause =
-                                        { functor = functor
-                                          arguments = arguments
-                                          predicates = [] }
-
-                                    parse (Seq.append clauses [ clause ]) (Seq.tail tokens |> trim)
-                                else
-                                    let clause =
-                                        { functor = functor
-                                          arguments = arguments
-                                          predicates = predicates }
-
-                                    parse (Seq.append clauses [ clause ]) (Seq.tail tokens |> trim)
-                            | _ ->
-                                Error
-                                    { token = Some token
-                                      message = "program should contains valid fact or rule" }
-                        else
-                            Error
-                                { token = None
-                                  message = "fact or rule should end with ." }
-                    | None ->
-                        Error
-                            { token = None
-                              message = "fact or rule should end with ." }
+                | Ok (term, tokens) -> parse (Seq.append terms [ term ]) (tokens |> trim)
                 | Error err -> Error err
+            | Operator operator -> parse (Seq.append terms [ Oper operator ]) (Seq.tail tokens)
             | Whitespace
-            | Newline -> parse clauses (Seq.tail tokens)
+            | Newline -> parse terms (Seq.tail tokens)
             | _ ->
                 Error
                     { token = Some token
@@ -616,11 +491,51 @@ module rec Grammar =
 module Compiler =
     open Grammar
 
-    type Functor =
-        { atom: string
-          arity: int32 }
+    type Head = { functor: Term; arguments: Term list }
 
-    type Expr =
-        { functor: Functor
-          arguments: Term array
-          predicates: Term array }
+    type Clause = { head: Head; body: Term list }
+
+    type CompilerError = { term: Term option; message: string }
+
+    let rec compileBody (body: Term list) (terms: Term seq) = ()
+
+    let rec compile (clauses: Clause list) (terms: Term seq) =
+        if Seq.isEmpty terms then
+            Ok clauses
+        else
+            let term = Seq.head terms
+            let tail = Seq.tail terms
+
+            match term with
+            | Atom _ ->
+                match Seq.tryHead tail with
+                | Some (Oper ".") ->
+                    let head = { functor = term; arguments = [] }
+                    let clause = { head = head; body = [] }
+                    compile (List.append clauses [ clause ]) (Seq.tail tail)
+                | term ->
+                    Error
+                        { term = term
+                          message = "fact should end with period . or rule should start with :-" }
+            | CompoundTerm _ ->
+                match Seq.tryHead tail with
+                | Some (Oper ".") ->
+                    let head = { functor = term; arguments = [] }
+                    let clause = { head = head; body = [] }
+                    compile (List.append clauses [ clause ]) (Seq.tail tail)
+                | Some (Oper ":-") ->
+                    let head = { functor = term; arguments = [] }
+                    let clause = { head = head; body = [] }
+                    compile (List.append clauses [ clause ]) (Seq.tail tail)
+                | term ->
+                    Error
+                        { term = term
+                          message = "fact should end with period . or rule should start with :-" }
+            | Oper _
+            | Str _
+            | Num _
+            | List _
+            | Var _ ->
+                Error
+                    { term = Some term
+                      message = "fact or rule should start with atom or compound term" }
