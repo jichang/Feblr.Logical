@@ -2,5 +2,5 @@
 
 open Feblr.Logical.Compiler.Grammar
 
-module Unification =
-    let unify (termA: Term) (termB: Term) = ()
+module Machine =
+    let run () = ()
