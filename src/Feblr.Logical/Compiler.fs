@@ -491,13 +491,32 @@ module rec Grammar =
 module Compiler =
     open Grammar
 
-    type Head = { functor: Term; arguments: Term list }
-
-    type Clause = { head: Head; body: Term list }
+    type Clause = { head: Term; body: Term list }
 
     type CompilerError = { term: Term option; message: string }
 
-    let rec compileBody (body: Term list) (terms: Term seq) = ()
+    let rec compileBody (body: Term list) (terms: Term seq) =
+        match Seq.tryHead terms with
+        | Some term ->
+            let tail = Seq.tail terms
+            match term with
+            | Var _
+            | Num _
+            | List _
+            | Str _
+            | Atom _
+            | CompoundTerm _ ->
+                compileBody (List.append body [term]) (tail)
+            | Oper operator ->
+                match operator  with
+                | "." ->
+                    Ok (body, tail)
+                | "," ->
+                    compileBody body (tail)
+                | _ ->
+                    compileBody (List.append body [term]) (tail)
+        | None ->
+            Error { term = None; message = "body should end with ." }
 
     let rec compile (clauses: Clause list) (terms: Term seq) =
         if Seq.isEmpty terms then
@@ -510,8 +529,7 @@ module Compiler =
             | Atom _ ->
                 match Seq.tryHead tail with
                 | Some (Oper ".") ->
-                    let head = { functor = term; arguments = [] }
-                    let clause = { head = head; body = [] }
+                    let clause = { head = term; body = [] }
                     compile (List.append clauses [ clause ]) (Seq.tail tail)
                 | term ->
                     Error
@@ -520,13 +538,15 @@ module Compiler =
             | CompoundTerm _ ->
                 match Seq.tryHead tail with
                 | Some (Oper ".") ->
-                    let head = { functor = term; arguments = [] }
-                    let clause = { head = head; body = [] }
+                    let clause = { head = term; body = [] }
                     compile (List.append clauses [ clause ]) (Seq.tail tail)
                 | Some (Oper ":-") ->
-                    let head = { functor = term; arguments = [] }
-                    let clause = { head = head; body = [] }
-                    compile (List.append clauses [ clause ]) (Seq.tail tail)
+                    match compileBody List.empty (Seq.tail tail) with
+                    | Ok (body, terms) ->
+                        let clause = { head = term; body = body }
+                        compile (List.append clauses [ clause ]) terms
+                    | Error err ->
+                        Error err
                 | term ->
                     Error
                         { term = term

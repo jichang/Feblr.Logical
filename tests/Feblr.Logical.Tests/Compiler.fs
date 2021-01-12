@@ -6,9 +6,19 @@ open FsUnit
 
 open Feblr.Logical.Compiler.Syntax
 open Feblr.Logical.Compiler.Grammar
+open Feblr.Logical.Compiler.Compiler
 
 
-type LexerTest(output: ITestOutputHelper) =
+type CompilerTest(output: ITestOutputHelper) =
+    member __.logSyntaxError(err: SyntaxError) =
+        output.WriteLine("syntax error: {0}", err)
+
+    member __.logGrammarError(err: GrammarError) =
+        output.WriteLine("grammar error: {0}", err)
+
+    member __.logCompilerError(err: CompilerError) =
+        output.WriteLine("grammar error: {0}", err)
+
     member __.logError(err: SyntaxError) =
         output.WriteLine("syntax error: {0}", err)
 
@@ -200,13 +210,6 @@ type LexerTest(output: ITestOutputHelper) =
             this.logError err
             Assert.True(false)
 
-type GrammarTest(output: ITestOutputHelper) =
-    member __.logSyntaxError(err: SyntaxError) =
-        output.WriteLine("syntax error: {0}", err)
-
-    member __.logGrammarError(err: GrammarError) =
-        output.WriteLine("grammar error: {0}", err)
-
     [<Fact>]
     member this.``Grammer should accept fact without arguments``() =
 
@@ -227,9 +230,17 @@ type GrammarTest(output: ITestOutputHelper) =
                 Assert.Equal(Seq.length terms, 2)
                 Assert.Equal(Seq.item 0 terms, Atom "fact")
                 Assert.Equal(Seq.item 1 terms, Oper ".")
+
+                match compile [] terms with
+                | Ok clauses ->
+                    Assert.Equal(1, Seq.length clauses)
+                    Assert.Equal({ head = Atom "fact"; body = [] }, Seq.item 0 clauses)
+                | Error err ->
+                    this.logCompilerError err
+                    Assert.True(false)
             | Error err ->
-                Assert.True(false)
                 this.logGrammarError err
+                Assert.True(false)
         | Error err ->
             this.logSyntaxError err
             Assert.True(false)
@@ -254,6 +265,19 @@ type GrammarTest(output: ITestOutputHelper) =
                 Assert.Equal(Seq.length terms, 2)
                 Assert.Equal(Seq.item 0 terms, CompoundTerm("fact", [ Atom "hello" ]))
                 Assert.Equal(Seq.item 1 terms, Oper ".")
+
+                match compile [] terms with
+                | Ok clauses ->
+                    Assert.Equal(1, Seq.length clauses)
+
+                    Assert.Equal(
+                        { head = CompoundTerm("fact", [ Atom "hello" ])
+                          body = [] },
+                        Seq.item 0 clauses
+                    )
+                | Error err ->
+                    this.logCompilerError err
+                    Assert.True(false)
             | Error err ->
                 this.logGrammarError err
                 Assert.True(false)
@@ -281,6 +305,19 @@ type GrammarTest(output: ITestOutputHelper) =
                 Assert.Equal(Seq.length terms, 2)
                 Assert.Equal(Seq.item 0 terms, CompoundTerm("fact", [ Atom "hello"; Str "Hello, world" ]))
                 Assert.Equal(Seq.item 1 terms, Oper ".")
+
+                match compile [] terms with
+                | Ok clauses ->
+                    Assert.Equal(1, Seq.length clauses)
+
+                    Assert.Equal(
+                        { head = CompoundTerm("fact", [ Atom "hello"; Str "Hello, world" ])
+                          body = [] },
+                        Seq.item 0 clauses
+                    )
+                | Error err ->
+                    this.logCompilerError err
+                    Assert.True(false)
             | Error err ->
                 this.logGrammarError err
                 Assert.True(false)
@@ -308,6 +345,19 @@ type GrammarTest(output: ITestOutputHelper) =
                 Assert.Equal(Seq.length terms, 2)
                 Assert.Equal(Seq.item 0 terms, CompoundTerm("fact", [ Atom "hello"; List [] ]))
                 Assert.Equal(Seq.item 1 terms, Oper ".")
+
+                match compile [] terms with
+                | Ok clauses ->
+                    Assert.Equal(1, Seq.length clauses)
+
+                    Assert.Equal(
+                        { head = CompoundTerm("fact", [ Atom "hello"; List [] ])
+                          body = [] },
+                        Seq.item 0 clauses
+                    )
+                | Error err ->
+                    this.logCompilerError err
+                    Assert.True(false)
             | Error err ->
                 this.logGrammarError err
                 Assert.True(false)
@@ -336,6 +386,19 @@ type GrammarTest(output: ITestOutputHelper) =
                 Assert.Equal(Seq.item 1 terms, Oper ":-")
                 Assert.Equal(Seq.item 2 terms, CompoundTerm("hello", [ Atom "world" ]))
                 Assert.Equal(Seq.item 3 terms, Oper ".")
+
+                match compile [] terms with
+                | Ok clauses ->
+                    Assert.Equal(1, Seq.length clauses)
+
+                    Assert.Equal(
+                        { head = CompoundTerm("fact", [ Atom "hello"; List [] ])
+                          body = [ CompoundTerm("hello", [ Atom "world" ]) ] },
+                        Seq.item 0 clauses
+                    )
+                | Error err ->
+                    this.logCompilerError err
+                    Assert.True(false)
             | Error err ->
                 this.logGrammarError err
                 Assert.True(false)
@@ -367,6 +430,21 @@ type GrammarTest(output: ITestOutputHelper) =
                 Assert.Equal(Seq.item 3 terms, Oper ",")
                 Assert.Equal(Seq.item 4 terms, CompoundTerm("hello", [ Atom "universe"; List [] ]))
                 Assert.Equal(Seq.item 5 terms, Oper ".")
+
+                match compile [] terms with
+                | Ok clauses ->
+                    Assert.Equal(1, Seq.length clauses)
+
+                    Assert.Equal(
+                        { head = CompoundTerm("fact", [ Atom "hello"; List [] ])
+                          body =
+                              [ CompoundTerm("hello", [ Atom "world" ])
+                                CompoundTerm("hello", [ Atom "universe"; List [] ]) ] },
+                        Seq.item 0 clauses
+                    )
+                | Error err ->
+                    this.logCompilerError err
+                    Assert.True(false)
             | Error err ->
                 this.logGrammarError err
                 Assert.True(false)
@@ -406,6 +484,29 @@ type GrammarTest(output: ITestOutputHelper) =
                 Assert.Equal(Seq.item 9 terms, Oper ",")
                 Assert.Equal(Seq.item 10 terms, CompoundTerm("hello2", [ Atom "universe"; List [] ]))
                 Assert.Equal(Seq.item 11 terms, Oper ".")
+
+                match compile [] terms with
+                | Ok clauses ->
+                    Assert.Equal(2, Seq.length clauses)
+
+                    Assert.Equal(
+                        { head = CompoundTerm("fact", [ Atom "hello"; List [] ])
+                          body =
+                              [ CompoundTerm("hello", [ Atom "world" ])
+                                CompoundTerm("hello", [ Atom "universe"; List [] ]) ] },
+                        Seq.item 0 clauses
+                    )
+
+                    Assert.Equal(
+                        { head = CompoundTerm("fact", [ Atom "hello2"; List [] ])
+                          body =
+                              [ CompoundTerm("hello2", [ Atom "world" ])
+                                CompoundTerm("hello2", [ Atom "universe"; List [] ]) ] },
+                        Seq.item 1 clauses
+                    )
+                | Error err ->
+                    this.logCompilerError err
+                    Assert.True(false)
             | Error err ->
                 this.logGrammarError err
                 Assert.True(false)
@@ -447,6 +548,26 @@ type GrammarTest(output: ITestOutputHelper) =
                 Assert.Equal(Seq.item 3 terms, Oper ",")
                 Assert.Equal(Seq.item 4 terms, CompoundTerm("hello", [ Atom "universe"; List [] ]))
                 Assert.Equal(Seq.item 5 terms, Oper ".")
+
+                match compile [] terms with
+                | Ok clauses ->
+                    Assert.Equal(1, Seq.length clauses)
+
+                    Assert.Equal(
+                        { head =
+                              CompoundTerm(
+                                  "fact",
+                                  [ Atom "hello"
+                                    CompoundTerm("fact", [ Atom "hello"; List [] ]) ]
+                              )
+                          body =
+                              [ CompoundTerm("hello", [ Atom "world" ])
+                                CompoundTerm("hello", [ Atom "universe"; List [] ]) ] },
+                        Seq.item 0 clauses
+                    )
+                | Error err ->
+                    this.logCompilerError err
+                    Assert.True(false)
             | Error err ->
                 this.logGrammarError err
                 Assert.True(false)
@@ -497,16 +618,33 @@ type GrammarTest(output: ITestOutputHelper) =
                 )
 
                 Assert.Equal(Seq.item 5 terms, Oper ".")
+
+                match compile [] terms with
+                | Ok clauses ->
+                    Assert.Equal(1, Seq.length clauses)
+
+                    Assert.Equal(
+                        { head =
+                              CompoundTerm(
+                                  "fact",
+                                  [ Atom "hello"
+                                    CompoundTerm("fact", [ Atom "hello"; List [ Atom "hello" ] ]) ]
+                              )
+                          body =
+                              [ CompoundTerm("hello", [ Atom "world" ])
+                                CompoundTerm(
+                                    "hello",
+                                    [ Atom "universe"
+                                      List [ Atom "world" ] ]
+                                ) ] },
+                        Seq.item 0 clauses
+                    )
+                | Error err ->
+                    this.logCompilerError err
+                    Assert.True(false)
             | Error err ->
                 this.logGrammarError err
                 Assert.True(false)
         | Error err ->
             this.logSyntaxError err
             Assert.True(false)
-
-type CompilerTest(output: ITestOutputHelper) =
-    member __.logSyntaxError(err: SyntaxError) =
-        output.WriteLine("syntax error: {0}", err)
-
-    member __.logGrammarError(err: GrammarError) =
-        output.WriteLine("grammar error: {0}", err)
