@@ -4,29 +4,41 @@ open Feblr.Logical.Compiler.Grammar
 
 type Binding = Term * Term
 
-let accumulate (bindings: Binding list option) (newBindings: Binding list option) =
-    match bindings, newBindings with
-    | Some bindings, Some newBindings -> Some(List.append bindings newBindings)
-    | _ -> None
+type UnifyError =
+    { source: Term
+      target: Term }
 
-let rec robinson (termA: Term) (termB: Term): Binding list option =
+type UnifyResult = Result<Binding list, UnifyError>
+
+let accumulate (bindings: UnifyResult) (newBindings: UnifyResult): UnifyResult =
+    match bindings, newBindings with
+    | Ok bindings, Ok newBindings -> Ok(List.append bindings newBindings)
+    | Ok _, Error err -> Error err
+    | Error err, _ -> Error err
+
+let rec robinson (termA: Term) (termB: Term): UnifyResult =
     match termA, termB with
-    | Var varA, Var varB -> if varA = varB then Some [] else None
-    | Var _, _ -> Some [ (termA, termB) ]
-    | _, Var _ -> Some [ (termB, termA) ]
-    | Str strA, Str strB -> if strA = strB then Some [] else None
-    | Num numA, Num numB -> if numA = numB then Some [] else None
-    | Atom atomA, Atom atomB -> if atomA = atomB then Some [] else None
+    | Var varA, Var varB -> if varA = varB then Ok [] else Ok [(termA, termB)]
+    | Var _, _ -> Ok [ (termA, termB) ]
+    | _, Var _ -> Ok [ (termB, termA) ]
+    | Str strA, Str strB -> if strA = strB then Ok [] else Error { source = termA; target = termB }
+    | Num numA, Num numB -> if numA = numB then Ok [] else Error { source = termA; target = termB }
+    | Atom atomA, Atom atomB -> if atomA = atomB then Ok [] else Error { source = termA; target = termB }
     | List listA, List listB ->
-        Seq.zip listA listB
-        |> Seq.map (fun (termA, termB) -> robinson termA termB)
-        |> Seq.fold accumulate (Some [])
+        if Seq.length listA = Seq.length listB then
+            Seq.zip listA listB
+            |> Seq.map (fun (termA, termB) -> robinson termA termB)
+            |> Seq.fold accumulate (Ok [])
+        else
+            Error { source = termA; target = termB }
     | CompoundTerm (functorA, argumentsA), CompoundTerm (functorB, argumentsB) ->
         if functorA = functorB then
-            Seq.zip argumentsA argumentsB
-            |> Seq.map (fun (termA, termB) -> robinson termA termB)
-            |> Seq.fold accumulate (Some [])
-
+            if Seq.length argumentsA = Seq.length argumentsB then
+                Seq.zip argumentsA argumentsB
+                |> Seq.map (fun (termA, termB) -> robinson termA termB)
+                |> Seq.fold accumulate (Ok [])
+            else
+                Error { source = termA; target = termB }
         else
-            None
-    | _ -> None
+            Error { source = termA; target = termB }
+    | _ -> Error { source = termA; target = termB }

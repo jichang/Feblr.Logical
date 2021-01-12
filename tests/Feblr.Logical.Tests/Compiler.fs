@@ -1,8 +1,7 @@
-module Tests
+module Tests.Compiler
 
 open Xunit
 open Xunit.Abstractions
-open FsUnit
 
 open Feblr.Logical.Compiler.Syntax
 open Feblr.Logical.Compiler.Grammar
@@ -40,7 +39,7 @@ type CompilerTest(output: ITestOutputHelper) =
             Assert.Equal(token.offset, 0)
 
             match token.value with
-            | Digits digits -> digits |> should equivalent code
+            | Digits digits -> Assert.Equal(code, digits)
             | _ -> Assert.True(false)
         | Error err ->
             this.logError err
@@ -64,7 +63,7 @@ type CompilerTest(output: ITestOutputHelper) =
             Assert.Equal(token.offset, 0)
 
             match token.value with
-            | Digits digits -> digits |> should equivalent code
+            | Digits digits -> Assert.Equal(code, digits)
             | _ -> Assert.True(false)
         | Error err ->
             this.logError err
@@ -88,7 +87,7 @@ type CompilerTest(output: ITestOutputHelper) =
             Assert.Equal(token.offset, 0)
 
             match token.value with
-            | Identifier term -> term |> should equivalent code
+            | Identifier term -> Assert.Equal(code, term)
             | _ -> Assert.True(false)
         | Error err ->
             this.logError err
@@ -112,7 +111,7 @@ type CompilerTest(output: ITestOutputHelper) =
             Assert.Equal(token.offset, 0)
 
             match token.value with
-            | Variable variable -> variable |> should equivalent code
+            | Variable variable -> Assert.Equal(code, variable)
             | _ -> Assert.True(false)
         | Error err ->
             this.logError err
@@ -120,7 +119,7 @@ type CompilerTest(output: ITestOutputHelper) =
 
     [<Fact>]
     member this.``Lexer should accept valid string``() =
-        let code = "`Variable_Hello`"
+        let code = "`Variable`"
 
         let src =
             { code = code.ToCharArray() |> Array.toSeq
@@ -137,8 +136,7 @@ type CompilerTest(output: ITestOutputHelper) =
 
             match token.value with
             | Chars chars ->
-                chars
-                |> should equivalent (Seq.skip 1 code |> Seq.take (Seq.length code - 2))
+                Assert.Equal("Variable", chars)
             | _ -> Assert.True(false)
         | Error err ->
             this.logError err
@@ -162,7 +160,7 @@ type CompilerTest(output: ITestOutputHelper) =
             Assert.Equal(token.offset, 0)
 
             match token.value with
-            | Operator operator -> operator |> should equivalent code
+            | Operator operator -> Assert.Equal(code, operator)
             | _ -> Assert.True(false)
         | Error err ->
             this.logError err
