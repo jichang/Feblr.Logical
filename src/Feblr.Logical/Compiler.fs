@@ -331,7 +331,7 @@ module rec Grammar =
         | Atom of string (* atom *)
         | Oper of string (* operator, like + - * / | . :-, it's a special kind ofatom *)
         | List of Term list (* [...] *)
-        | CompoundTerm of string * Term list (* functor(t1, t2) := functor2, X, `hello`, 203430 *)
+        | CompoundTerm of Term * Term list (* functor(t1, t2) := functor2, X, `hello`, 203430 *)
 
     type GrammarError =
         { token: Token option
@@ -404,7 +404,7 @@ module rec Grammar =
                         | Some nextToken ->
                             if nextToken.value = rightBracket then
                                 let tail = newTail |> Seq.tail |> trim
-                                let compoundTerm = CompoundTerm(atom, [])
+                                let compoundTerm = CompoundTerm(Atom atom, [])
                                 Ok(compoundTerm, tail)
                             else
                                 match parseTuple [] newTail with
@@ -412,7 +412,7 @@ module rec Grammar =
                                     match Seq.tryHead tail with
                                     | Some nextToken ->
                                         if nextToken.value = rightBracket then
-                                            let compoundTerm = CompoundTerm(atom, arguments)
+                                            let compoundTerm = CompoundTerm(Atom atom, arguments)
                                             let newTail = tail |> Seq.tail |> trim
                                             Ok(compoundTerm, newTail)
                                         else

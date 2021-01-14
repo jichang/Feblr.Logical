@@ -261,7 +261,7 @@ type CompilerTest(output: ITestOutputHelper) =
             match parse Seq.empty tokens with
             | Ok terms ->
                 Assert.Equal(Seq.length terms, 2)
-                Assert.Equal(Seq.item 0 terms, CompoundTerm("fact", [ Atom "hello" ]))
+                Assert.Equal(Seq.item 0 terms, CompoundTerm(Atom "fact", [ Atom "hello" ]))
                 Assert.Equal(Seq.item 1 terms, Oper ".")
 
                 match compile [] terms with
@@ -269,7 +269,7 @@ type CompilerTest(output: ITestOutputHelper) =
                     Assert.Equal(1, Seq.length clauses)
 
                     Assert.Equal(
-                        { head = CompoundTerm("fact", [ Atom "hello" ])
+                        { head = CompoundTerm(Atom "fact", [ Atom "hello" ])
                           body = [] },
                         Seq.item 0 clauses
                     )
@@ -301,7 +301,7 @@ type CompilerTest(output: ITestOutputHelper) =
             match parse Seq.empty tokens with
             | Ok terms ->
                 Assert.Equal(Seq.length terms, 2)
-                Assert.Equal(Seq.item 0 terms, CompoundTerm("fact", [ Atom "hello"; Str "Hello, world" ]))
+                Assert.Equal(Seq.item 0 terms, CompoundTerm(Atom "fact", [ Atom "hello"; Str "Hello, world" ]))
                 Assert.Equal(Seq.item 1 terms, Oper ".")
 
                 match compile [] terms with
@@ -309,7 +309,7 @@ type CompilerTest(output: ITestOutputHelper) =
                     Assert.Equal(1, Seq.length clauses)
 
                     Assert.Equal(
-                        { head = CompoundTerm("fact", [ Atom "hello"; Str "Hello, world" ])
+                        { head = CompoundTerm(Atom "fact", [ Atom "hello"; Str "Hello, world" ])
                           body = [] },
                         Seq.item 0 clauses
                     )
@@ -341,7 +341,7 @@ type CompilerTest(output: ITestOutputHelper) =
             match parse Seq.empty tokens with
             | Ok terms ->
                 Assert.Equal(Seq.length terms, 2)
-                Assert.Equal(Seq.item 0 terms, CompoundTerm("fact", [ Atom "hello"; List [] ]))
+                Assert.Equal(Seq.item 0 terms, CompoundTerm(Atom "fact", [ Atom "hello"; List [] ]))
                 Assert.Equal(Seq.item 1 terms, Oper ".")
 
                 match compile [] terms with
@@ -349,7 +349,7 @@ type CompilerTest(output: ITestOutputHelper) =
                     Assert.Equal(1, Seq.length clauses)
 
                     Assert.Equal(
-                        { head = CompoundTerm("fact", [ Atom "hello"; List [] ])
+                        { head = CompoundTerm(Atom "fact", [ Atom "hello"; List [] ])
                           body = [] },
                         Seq.item 0 clauses
                     )
@@ -380,9 +380,9 @@ type CompilerTest(output: ITestOutputHelper) =
             match parse Seq.empty tokens with
             | Ok terms ->
                 Assert.Equal(Seq.length terms, 4)
-                Assert.Equal(Seq.item 0 terms, CompoundTerm("fact", [ Atom "hello"; List [] ]))
+                Assert.Equal(Seq.item 0 terms, CompoundTerm(Atom "fact", [ Atom "hello"; List [] ]))
                 Assert.Equal(Seq.item 1 terms, Oper ":-")
-                Assert.Equal(Seq.item 2 terms, CompoundTerm("hello", [ Atom "world" ]))
+                Assert.Equal(Seq.item 2 terms, CompoundTerm(Atom "hello", [ Atom "world" ]))
                 Assert.Equal(Seq.item 3 terms, Oper ".")
 
                 match compile [] terms with
@@ -390,8 +390,8 @@ type CompilerTest(output: ITestOutputHelper) =
                     Assert.Equal(1, Seq.length clauses)
 
                     Assert.Equal(
-                        { head = CompoundTerm("fact", [ Atom "hello"; List [] ])
-                          body = [ CompoundTerm("hello", [ Atom "world" ]) ] },
+                        { head = CompoundTerm(Atom "fact", [ Atom "hello"; List [] ])
+                          body = [ CompoundTerm(Atom "hello", [ Atom "world" ]) ] },
                         Seq.item 0 clauses
                     )
                 | Error err ->
@@ -422,11 +422,11 @@ type CompilerTest(output: ITestOutputHelper) =
             match parse Seq.empty tokens with
             | Ok terms ->
                 Assert.Equal(Seq.length terms, 6)
-                Assert.Equal(Seq.item 0 terms, CompoundTerm("fact", [ Atom "hello"; List [] ]))
+                Assert.Equal(Seq.item 0 terms, CompoundTerm(Atom "fact", [ Atom "hello"; List [] ]))
                 Assert.Equal(Seq.item 1 terms, Oper ":-")
-                Assert.Equal(Seq.item 2 terms, CompoundTerm("hello", [ Atom "world" ]))
+                Assert.Equal(Seq.item 2 terms, CompoundTerm(Atom "hello", [ Atom "world" ]))
                 Assert.Equal(Seq.item 3 terms, Oper ",")
-                Assert.Equal(Seq.item 4 terms, CompoundTerm("hello", [ Atom "universe"; List [] ]))
+                Assert.Equal(Seq.item 4 terms, CompoundTerm(Atom "hello", [ Atom "universe"; List [] ]))
                 Assert.Equal(Seq.item 5 terms, Oper ".")
 
                 match compile [] terms with
@@ -434,10 +434,10 @@ type CompilerTest(output: ITestOutputHelper) =
                     Assert.Equal(1, Seq.length clauses)
 
                     Assert.Equal(
-                        { head = CompoundTerm("fact", [ Atom "hello"; List [] ])
+                        { head = CompoundTerm(Atom "fact", [ Atom "hello"; List [] ])
                           body =
-                              [ CompoundTerm("hello", [ Atom "world" ])
-                                CompoundTerm("hello", [ Atom "universe"; List [] ]) ] },
+                              [ CompoundTerm(Atom "hello", [ Atom "world" ])
+                                CompoundTerm(Atom "hello", [ Atom "universe"; List [] ]) ] },
                         Seq.item 0 clauses
                     )
                 | Error err ->
@@ -470,17 +470,17 @@ type CompilerTest(output: ITestOutputHelper) =
             match parse Seq.empty tokens with
             | Ok terms ->
                 Assert.Equal(Seq.length terms, 12)
-                Assert.Equal(Seq.item 0 terms, CompoundTerm("fact", [ Atom "hello"; List [] ]))
+                Assert.Equal(Seq.item 0 terms, CompoundTerm(Atom "fact", [ Atom "hello"; List [] ]))
                 Assert.Equal(Seq.item 1 terms, Oper ":-")
-                Assert.Equal(Seq.item 2 terms, CompoundTerm("hello", [ Atom "world" ]))
+                Assert.Equal(Seq.item 2 terms, CompoundTerm(Atom "hello", [ Atom "world" ]))
                 Assert.Equal(Seq.item 3 terms, Oper ",")
-                Assert.Equal(Seq.item 4 terms, CompoundTerm("hello", [ Atom "universe"; List [] ]))
+                Assert.Equal(Seq.item 4 terms, CompoundTerm(Atom "hello", [ Atom "universe"; List [] ]))
                 Assert.Equal(Seq.item 5 terms, Oper ".")
-                Assert.Equal(Seq.item 6 terms, CompoundTerm("fact", [ Atom "hello2"; List [] ]))
+                Assert.Equal(Seq.item 6 terms, CompoundTerm(Atom "fact", [ Atom "hello2"; List [] ]))
                 Assert.Equal(Seq.item 7 terms, Oper ":-")
-                Assert.Equal(Seq.item 8 terms, CompoundTerm("hello2", [ Atom "world" ]))
+                Assert.Equal(Seq.item 8 terms, CompoundTerm(Atom "hello2", [ Atom "world" ]))
                 Assert.Equal(Seq.item 9 terms, Oper ",")
-                Assert.Equal(Seq.item 10 terms, CompoundTerm("hello2", [ Atom "universe"; List [] ]))
+                Assert.Equal(Seq.item 10 terms, CompoundTerm(Atom "hello2", [ Atom "universe"; List [] ]))
                 Assert.Equal(Seq.item 11 terms, Oper ".")
 
                 match compile [] terms with
@@ -488,18 +488,18 @@ type CompilerTest(output: ITestOutputHelper) =
                     Assert.Equal(2, Seq.length clauses)
 
                     Assert.Equal(
-                        { head = CompoundTerm("fact", [ Atom "hello"; List [] ])
+                        { head = CompoundTerm(Atom "fact", [ Atom "hello"; List [] ])
                           body =
-                              [ CompoundTerm("hello", [ Atom "world" ])
-                                CompoundTerm("hello", [ Atom "universe"; List [] ]) ] },
+                              [ CompoundTerm(Atom "hello", [ Atom "world" ])
+                                CompoundTerm(Atom "hello", [ Atom "universe"; List [] ]) ] },
                         Seq.item 0 clauses
                     )
 
                     Assert.Equal(
-                        { head = CompoundTerm("fact", [ Atom "hello2"; List [] ])
+                        { head = CompoundTerm(Atom "fact", [ Atom "hello2"; List [] ])
                           body =
-                              [ CompoundTerm("hello2", [ Atom "world" ])
-                                CompoundTerm("hello2", [ Atom "universe"; List [] ]) ] },
+                              [ CompoundTerm(Atom "hello2", [ Atom "world" ])
+                                CompoundTerm(Atom "hello2", [ Atom "universe"; List [] ]) ] },
                         Seq.item 1 clauses
                     )
                 | Error err ->
@@ -535,16 +535,16 @@ type CompilerTest(output: ITestOutputHelper) =
                 Assert.Equal(
                     Seq.item 0 terms,
                     CompoundTerm(
-                        "fact",
+                        Atom "fact",
                         [ Atom "hello"
-                          CompoundTerm("fact", [ Atom "hello"; List [] ]) ]
+                          CompoundTerm(Atom "fact", [ Atom "hello"; List [] ]) ]
                     )
                 )
 
                 Assert.Equal(Seq.item 1 terms, Oper ":-")
-                Assert.Equal(Seq.item 2 terms, CompoundTerm("hello", [ Atom "world" ]))
+                Assert.Equal(Seq.item 2 terms, CompoundTerm(Atom "hello", [ Atom "world" ]))
                 Assert.Equal(Seq.item 3 terms, Oper ",")
-                Assert.Equal(Seq.item 4 terms, CompoundTerm("hello", [ Atom "universe"; List [] ]))
+                Assert.Equal(Seq.item 4 terms, CompoundTerm(Atom "hello", [ Atom "universe"; List [] ]))
                 Assert.Equal(Seq.item 5 terms, Oper ".")
 
                 match compile [] terms with
@@ -554,13 +554,13 @@ type CompilerTest(output: ITestOutputHelper) =
                     Assert.Equal(
                         { head =
                               CompoundTerm(
-                                  "fact",
+                                  Atom "fact",
                                   [ Atom "hello"
-                                    CompoundTerm("fact", [ Atom "hello"; List [] ]) ]
+                                    CompoundTerm(Atom "fact", [ Atom "hello"; List [] ]) ]
                               )
                           body =
-                              [ CompoundTerm("hello", [ Atom "world" ])
-                                CompoundTerm("hello", [ Atom "universe"; List [] ]) ] },
+                              [ CompoundTerm(Atom "hello", [ Atom "world" ])
+                                CompoundTerm(Atom "hello", [ Atom "universe"; List [] ]) ] },
                         Seq.item 0 clauses
                     )
                 | Error err ->
@@ -596,20 +596,20 @@ type CompilerTest(output: ITestOutputHelper) =
                 Assert.Equal(
                     Seq.item 0 terms,
                     CompoundTerm(
-                        "fact",
+                        Atom "fact",
                         [ Atom "hello"
-                          CompoundTerm("fact", [ Atom "hello"; List [ Atom "hello" ] ]) ]
+                          CompoundTerm(Atom "fact", [ Atom "hello"; List [ Atom "hello" ] ]) ]
                     )
                 )
 
                 Assert.Equal(Seq.item 1 terms, Oper ":-")
-                Assert.Equal(Seq.item 2 terms, CompoundTerm("hello", [ Atom "world" ]))
+                Assert.Equal(Seq.item 2 terms, CompoundTerm(Atom "hello", [ Atom "world" ]))
                 Assert.Equal(Seq.item 3 terms, Oper ",")
 
                 Assert.Equal(
                     Seq.item 4 terms,
                     CompoundTerm(
-                        "hello",
+                        Atom "hello",
                         [ Atom "universe"
                           List [ Atom "world" ] ]
                     )
@@ -624,14 +624,14 @@ type CompilerTest(output: ITestOutputHelper) =
                     Assert.Equal(
                         { head =
                               CompoundTerm(
-                                  "fact",
+                                  Atom "fact",
                                   [ Atom "hello"
-                                    CompoundTerm("fact", [ Atom "hello"; List [ Atom "hello" ] ]) ]
+                                    CompoundTerm(Atom "fact", [ Atom "hello"; List [ Atom "hello" ] ]) ]
                               )
                           body =
-                              [ CompoundTerm("hello", [ Atom "world" ])
+                              [ CompoundTerm(Atom "hello", [ Atom "world" ])
                                 CompoundTerm(
-                                    "hello",
+                                    Atom "hello",
                                     [ Atom "universe"
                                       List [ Atom "world" ] ]
                                 ) ] },
