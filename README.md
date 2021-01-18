@@ -1,6 +1,6 @@
 # About this project
 
-This project aim to implement a programming language like Prolog. I have no intend to make it production ready.
+This project aim to implement a programming language like Prolog. It's not production ready yet and it's possible that it will never be.
 
 # Syntax
 
