@@ -3,14 +3,15 @@
 open Feblr.Logical.Compiler.Grammar
 open Feblr.Logical.Compiler.Compiler
 open Feblr.Logical.Unify
+open System.Collections.Generic
 
 module Machine =
     type Machine =
-        { index: Map<string, int32>
+        { indexes: Map<string, int32 list>
           database: Clause list }
 
         static member empty =
-            { index = Map.empty
+            { indexes = Map.empty
               database = List.empty }
 
         static member append (machine: Machine) (clause: Clause) =
@@ -24,83 +25,109 @@ module Machine =
             | Some key ->
                 let database = List.append machine.database [ clause ]
 
-                let index =
-                    Map.add key (Seq.length database - 1) machine.index
+                let index = List.length database - 1
 
-                { index = index; database = database }
+                let indexes =
+                    match Map.tryFind key machine.indexes with
+                    | Some indexes -> Map.add key (List.append indexes [ index ]) machine.indexes
+                    | None -> Map.add key [ index ] machine.indexes
+
+                { indexes = indexes
+                  database = database }
             | None -> machine
 
     let load (clauses: Clause list) =
         List.fold Machine.append Machine.empty clauses
 
-    type Query = Term
+    type Goal = Term
 
-    type Layer = {  bindings: Binding list }
+    type Frame =
+        { clause: Clause
+          bindings: Binding list }
 
-    type DeriveStack = { layers: Layer array }
+    type DeriveStack = Stack<Frame>
 
-    type DatabaseError = { query: Query; message: string }
+    type SearchError = { goal: Goal; message: string }
 
     type DeriveError =
-        | Match of DatabaseError
+        | Search of SearchError
         | Unify of UnifyError
 
-    let unify (machine: Machine) (stack: Result<DeriveStack, DeriveError>) ((termA, termB): Term * Term) =
-        match stack with
-        | Ok stack ->
-            let result = robinson termA termB
+    let search (machine: Machine) (goal: Term) =
+        match goal with
+        | Atom atom ->
+            let key = $"{atom}/0"
 
-            match result with
-            | Ok bindings ->
-                let layer = { bindings = bindings }
-                Ok { layers = Array.append stack.layers [|layer|] }
-            | Error error -> Error(Unify error)
-        | Error error -> Error error
+            match Map.tryFind key machine.indexes with
+            | Some indexes ->
+                let clauses =
+                    List.map (fun index -> Seq.item index machine.database) indexes
 
-    let rec derive (machine: Machine) (stack: Result<DeriveStack, DeriveError>) (query: Query) =
-        match stack with
-        | Ok _ ->
-            match query with
-            | Atom atom ->
-                let key = $"{atom}/0"
-
-                match Map.tryFind key machine.index with
-                | Some index ->
-                    let clause = Seq.item index machine.database
-                    List.fold (derive machine) stack clause.body
-                | None ->
-                    let error =
-                        { query = query
-                          message = "no matched clause found in database" }
-
-                    Error(Match error)
-            | CompoundTerm (Atom atom, arguments) ->
-                let key = $"{atom}/{List.length arguments}"
-
-                match Map.tryFind key machine.index with
-                | Some index ->
-                    let clause = Seq.item index machine.database
-                    match clause.head with
-                    | CompoundTerm (atom, _arguments) ->
-                        let deriveArgsStack =
-                            List.zip arguments _arguments
-                            |> List.fold (unify machine) stack
-
-                        match deriveArgsStack with
-                        | Ok _ -> List.fold (derive machine) deriveArgsStack clause.body
-                        | Error error -> Error error
-                    | _ ->
-                        Error (Match { query = query; message = "compound term can't match to other kind of term"})
-                | None ->
-                    let error =
-                        { query = query
-                          message = "no matched clause found in database" }
-
-                    Error(Match error)
-            | _ ->
+                Ok(clauses)
+            | None ->
                 let error =
-                    { query = query
-                      message = "query need to be atom or compound term" }
+                    { goal = goal
+                      message = "no clause match the goal in database" }
 
-                Error(Match error)
-        | Error error -> Error error
+                Error error
+        | CompoundTerm (Atom atom, arguments) ->
+            let key = $"{atom}/{List.length arguments}"
+
+            match Map.tryFind key machine.indexes with
+            | Some indexes ->
+                let clauses =
+                    List.map (fun index -> Seq.item index machine.database) indexes
+
+                Ok(clauses)
+            | None ->
+                let error =
+                    { goal = goal
+                      message = "no clause match the goal in database" }
+
+                Error error
+        | _ ->
+            let error =
+                { goal = goal
+                  message = "goal need to be atom or compound term" }
+
+            Error error
+
+
+    let unify (termA: Term) (termB: Term) =
+        let result = robinson termA termB
+
+        match result with
+        | Ok bindings ->
+            Ok bindings
+        | Error error -> Error(Unify error)
+
+    let rec derive (machine: Machine) (clauseStack: Stack<Clause list>) (deriveStack: DeriveStack) (goal: Goal) =
+        if clauseStack.Count = 0 then
+            Ok deriveStack
+        else
+            let clauses = clauseStack.Peek()
+            if List.isEmpty clauses then
+                Ok deriveStack
+            else
+                let clause = List.head clauses
+                match unify clause.head goal with
+                | Ok bindings ->
+                    deriveStack.Push({ clause = clause; bindings = bindings })
+                    Ok deriveStack
+                | Error error ->
+                    Error error
+
+
+    let query (machine: Machine) (goal: Term) =
+        match search machine goal with
+        | Ok clauses ->
+            let clauseStack = Stack()
+            clauseStack.Push(clauses)
+            let deriveStack = Stack()
+            match derive machine clauseStack deriveStack goal with
+            | Ok stack ->
+                Ok stack
+            | Error error ->
+                Error (error)
+        | Error error ->
+            Error (Search error)
