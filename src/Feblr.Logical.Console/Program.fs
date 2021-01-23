@@ -4,10 +4,7 @@ open Feblr.Logical.Compiler.Compiler
 open Feblr.Logical.Wam
 open Feblr.Logical.Wam.Machine
 
-[<EntryPoint>]
-let main argv =
-    let code = "father(don, fsharp)."
-
+let compileCode (code: string) =
     let src =
         { code = code.ToCharArray() |> Array.toSeq
           offset = 0 }
@@ -19,25 +16,38 @@ let main argv =
         match parse Seq.empty tokens with
         | Ok terms ->
             match compile List.empty terms with
-            | Ok clauses ->
-                let machine = Machine.load clauses
-                let stack = { layers = [||] }
-                let lang = "fsharp"
-                let query = CompoundTerm (Atom "father", [Var "Who"; Atom lang])
-                let result = Machine.derive machine (Ok stack) query
-                match result with
-                | Ok stack ->
-                    let layer = stack.layers.[0]
-                    let binding = List.head layer.bindings
-                    match binding with
-                    | (Var "Who", Atom who) ->
-                        printfn "%A is father of %A" who lang
-                    | _ ->
-                        printfn "can not find father of fsharp"
-                | Error err ->
-                    printfn "derive error: %A" err
-            | Error err -> printfn "compiler error: %A" err
-        | Error err -> printfn "grammar error: %A" err
-    | Error err -> printfn "syntax error: %A" err
+            | Ok clauses -> Some clauses
+            | Error err ->
+                printfn "compiler error: %A" err
+                None
+        | Error err ->
+            printfn "grammar error: %A" err
+            None
+    | Error err ->
+        printfn "syntax error: %A" err
+        None
+
+[<EntryPoint>]
+let main argv =
+    let code = "
+        father(a, b).
+        father(b, c).
+        grandfather(X, Z) :- father(X, Y), father(Y, Z).
+    "
+
+    match compileCode code with
+    | Some clauses ->
+        let machine = Machine.load clauses
+        let goal = "grandfather(a, X)."
+
+        match compileCode goal with
+        | Some clauses ->
+            let clause = List.head clauses
+
+            match query machine clause.head with
+            | Some tree -> printfn "%A" tree
+            | None -> printfn "can not satisfy goal"
+        | None -> printfn "can not compile goal"
+    | None -> printfn "can not compile code"
 
     0

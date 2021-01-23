@@ -177,7 +177,11 @@ module Syntax =
         | Some nextChar ->
             if isWhitespace nextChar
                || isNewline nextChar
-               || isPeriod nextChar then
+               || isPeriod nextChar
+               || isLeftBracket nextChar
+               || isRightBracket nextChar
+               || isComma nextChar
+               || isRightSquareBracket nextChar then
                 Ok(
                     { value = variable |> charsToString |> Variable
                       offset = source.offset },
@@ -499,24 +503,23 @@ module Compiler =
         match Seq.tryHead terms with
         | Some term ->
             let tail = Seq.tail terms
+
             match term with
             | Var _
             | Num _
             | List _
             | Str _
             | Atom _
-            | CompoundTerm _ ->
-                compileBody (List.append body [term]) (tail)
+            | CompoundTerm _ -> compileBody (List.append body [ term ]) (tail)
             | Oper operator ->
-                match operator  with
-                | "." ->
-                    Ok (body, tail)
-                | "," ->
-                    compileBody body (tail)
-                | _ ->
-                    compileBody (List.append body [term]) (tail)
+                match operator with
+                | "." -> Ok(body, tail)
+                | "," -> compileBody body (tail)
+                | _ -> compileBody (List.append body [ term ]) (tail)
         | None ->
-            Error { term = None; message = "body should end with ." }
+            Error
+                { term = None
+                  message = "body should end with ." }
 
     let rec compile (clauses: Clause list) (terms: Term seq) =
         if Seq.isEmpty terms then
@@ -545,8 +548,7 @@ module Compiler =
                     | Ok (body, terms) ->
                         let clause = { head = term; body = body }
                         compile (List.append clauses [ clause ]) terms
-                    | Error err ->
-                        Error err
+                    | Error err -> Error err
                 | term ->
                     Error
                         { term = term
