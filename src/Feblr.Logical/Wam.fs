@@ -112,6 +112,8 @@ module Machine =
 
                             if List.isEmpty children then
                                 None
+                            else if List.length children <> List.length clause.body then
+                                None
                             else
                                 Some
                                     { target = Clause clause
@@ -120,13 +122,15 @@ module Machine =
                 |> List.filter Option.isSome
                 |> List.map Option.get
 
-            let treeNode =
-                { target = Term term
-                  bindings = []
-                  children = children }
+            if List.isEmpty children then
+                None
+            else
+                let treeNode =
+                    { target = Term term
+                      bindings = []
+                      children = children }
 
-            Some treeNode
+                Some treeNode
         | None -> None
-
 
     let query (machine: Machine) (goal: Goal) = derive machine goal
